@@ -10,21 +10,25 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
 RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 RUN apt-get update && apt-get install -y docker-ce-cli
 
-# --- 이 부분이 수정/추가되었습니다 ---
-# 4. Homebrew 설치에 필요한 의존성 패키지들을 먼저 설치합니다.
+# 4. Homebrew 설치에 필요한 기본 도구들을 설치합니다.
 RUN apt-get install -y build-essential procps file git
-# ------------------------------------
 
-# 5. Homebrew 설치
-#    - jenkins 사용자로 다시 전환합니다.
+# --- 이 부분이 완전히 변경되었습니다 ---
+# 5. Homebrew 직접 다운로드 및 설치
+#    - jenkins 사용자로 전환합니다.
 USER jenkins
-# --- 이 부분이 수정되었습니다 ---
-#    - NONINTERACTIVE=true 환경 변수를 사용하여 사용자 입력 없이 설치를 진행합니다.
-RUN NONINTERACTIVE=true /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-# ------------------------------------
-#    - jenkins 사용자의 환경 설정 파일에 Homebrew 경로를 추가합니다.
-RUN echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /var/jenkins_home/.bashrc
+WORKDIR /var/jenkins_home
+#    - Homebrew 저장소를 직접 Git Clone 합니다.
+RUN git clone https://github.com/Homebrew/brew /home/linuxbrew/.linuxbrew/Homebrew
+#    - Homebrew 실행 파일들을 생성합니다.
+RUN mkdir -p /home/linuxbrew/.linuxbrew/bin && \
+    ln -s /home/linuxbrew/.linuxbrew/Homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew
+#    - Homebrew 환경변수를 설정합니다.
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
+#    - Homebrew 설치를 완료하고 기본 패키지를 설정합니다.
+RUN brew update --force --quiet && \
+    chmod -R go-w "$(brew --prefix)/share/zsh"
+# ------------------------------------
 
 # 6. 필수 Jenkins 플러그인 목록을 이미지 안에 미리 포함시킵니다.
 COPY --chown=jenkins:jenkins plugins.txt /var/jenkins_home/plugins.txt
