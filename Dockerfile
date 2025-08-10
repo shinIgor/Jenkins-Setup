@@ -13,9 +13,7 @@ RUN apt-get update && apt-get install -y docker-ce-cli
 # 4. Homebrew 설치에 필요한 기본 도구들을 설치합니다.
 RUN apt-get install -y build-essential procps file git
 
-# --- 이 부분이 완전히 변경되었습니다 ---
-# 5. Homebrew 설치
-#    - root 관리자가 Homebrew를 설치할 폴더를 미리 만들고, jenkins 사용자에게 권한을 부여합니다.
+# 5. Homebrew 설치 (권한 문제 해결된 버전)
 RUN mkdir -p /home/linuxbrew/.linuxbrew && chown -R jenkins:jenkins /home/linuxbrew
 
 #    - jenkins 사용자로 전환합니다.
@@ -31,11 +29,14 @@ ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
 #    - Homebrew 설치를 완료하고 기본 패키지를 설정합니다.
 RUN brew update --force --quiet && \
     chmod -R go-w "$(brew --prefix)/share/zsh"
-# ------------------------------------
 
-# 6. 필수 Jenkins 플러그인 목록을 이미지 안에 미리 포함시킵니다.
-COPY --chown=jenkins:jenkins plugins.txt /var/jenkins_home/plugins.txt
-ENV JENKINS_OPTS="--plugin-file=/var/jenkins_home/plugins.txt"
+# --- 이 부분이 완전히 변경되었습니다 ---
+# 6. 필수 Jenkins 플러그인 설치
+#    - 플러그인 목록 파일을 복사합니다.
+COPY --chown=jenkins:jenkins plugins.txt /usr/share/jenkins/ref/plugins.txt
+#    - Jenkins 공식 플러그인 설치 스크립트를 실행합니다.
+RUN /usr/local/bin/install-plugins.sh < /usr/share/jenkins/ref/plugins.txt
+# ------------------------------------
 
 # 7. 다시 관리자(root)로 돌아와서 jenkins 사용자에게 sudo 권한을 부여합니다 (선택 사항, 필요시 사용).
 USER root
