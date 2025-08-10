@@ -14,11 +14,14 @@ RUN apt-get update && apt-get install -y docker-ce-cli
 RUN apt-get install -y build-essential procps file git
 
 # --- 이 부분이 완전히 변경되었습니다 ---
-# 5. Homebrew 직접 다운로드 및 설치
+# 5. Homebrew 설치
+#    - root 관리자가 Homebrew를 설치할 폴더를 미리 만들고, jenkins 사용자에게 권한을 부여합니다.
+RUN mkdir -p /home/linuxbrew/.linuxbrew && chown -R jenkins:jenkins /home/linuxbrew
+
 #    - jenkins 사용자로 전환합니다.
 USER jenkins
 WORKDIR /var/jenkins_home
-#    - Homebrew 저장소를 직접 Git Clone 합니다.
+#    - 이제 jenkins 사용자는 권한이 있는 폴더에 Homebrew 저장소를 Git Clone 합니다.
 RUN git clone https://github.com/Homebrew/brew /home/linuxbrew/.linuxbrew/Homebrew
 #    - Homebrew 실행 파일들을 생성합니다.
 RUN mkdir -p /home/linuxbrew/.linuxbrew/bin && \
