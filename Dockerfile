@@ -10,22 +10,14 @@ COPY --chown=jenkins:jenkins plugins.txt /usr/share/jenkins/ref/plugins.txt
 RUN /usr/local/bin/install-plugins.sh < /usr/share/jenkins/ref/plugins.txt
 
 # 4. Docker CLI를 설치합니다.
+#    - 필요한 패키지를 먼저 설치합니다.
 RUN apt-get update && apt-get install -y lsb-release curl gnupg
+#    - Docker의 공식 GPG 키를 추가합니다.
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+#    - Docker 저장소를 설정합니다.
 RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+#    - Docker CLI를 설치합니다.
 RUN apt-get update && apt-get install -y docker-ce-cli
 
-# 5. Homebrew 설치에 필요한 기본 도구들을 설치합니다.
-RUN apt-get install -y build-essential procps file git
-
-# 6. Homebrew를 설치할 폴더를 만들고 jenkins 사용자에게 권한을 부여합니다.
-RUN mkdir -p /home/linuxbrew/.linuxbrew && chown -R jenkins:jenkins /home/linuxbrew
-
-# 7. jenkins 사용자로 전환하여 Homebrew를 설치합니다.
+# 5. 최종적으로 jenkins 사용자로 컨테이너를 실행합니다.
 USER jenkins
-RUN git clone https://github.com/Homebrew/brew /home/linuxbrew/.linuxbrew/Homebrew
-RUN mkdir -p /home/linuxbrew/.linuxbrew/bin && \
-    ln -s /home/linuxbrew/.linuxbrew/Homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew
-ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
-RUN brew update --force --quiet && \
-    chmod -R go-w "$(brew --prefix)/share/zsh"
